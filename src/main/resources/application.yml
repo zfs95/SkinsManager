@@ -1,0 +1,38 @@
+server:
+  port: 6969
+
+vaadin:
+  launch-browser: true
+
+spring:
+  application:
+    name: SkinsManager
+
+  jpa:
+    database: POSTGRESQL
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+      temp:
+        use_jdbc_metadata_defaults: false
+      jdbc:
+        lob:
+          non_contextual_creation: true
+
+  sql:
+    init:
+      platform: postgres
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/SkinsManager
+    username: postgres
+    password: test123
+    driver-class-name: org.postgresql.Driver
+
+services:
+  skinport: https://api.skinport.com/v1
+
+logging:
+  level:
+    com.example: DEBUG

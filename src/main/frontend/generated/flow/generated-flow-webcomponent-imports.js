@@ -1,6 +1,7 @@
 import { injectGlobalWebcomponentCss } from 'Frontend/generated/jar-resources/theme-util.js';
 
 import '@vaadin/polymer-legacy-adapter/style-modules.js';
+import '@vaadin/horizontal-layout/src/vaadin-horizontal-layout.js';
 import '@vaadin/vertical-layout/src/vaadin-vertical-layout.js';
 import '@vaadin/field-highlighter/src/vaadin-field-highlighter.js';
 import '@vaadin/common-frontend/ConnectionIndicator.js';
@@ -54,7 +55,6 @@ import '@vaadin/message-input/src/vaadin-message-input.js';
 import 'Frontend/generated/jar-resources/messageListConnector.js';
 import '@vaadin/message-list/src/vaadin-message-list.js';
 import '@vaadin/notification/src/vaadin-notification.js';
-import '@vaadin/horizontal-layout/src/vaadin-horizontal-layout.js';
 import '@vaadin/scroller/src/vaadin-scroller.js';
 import '@vaadin/popover/src/vaadin-popover.js';
 import 'Frontend/generated/jar-resources/vaadin-popover/popover.ts';

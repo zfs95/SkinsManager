@@ -72,7 +72,7 @@ class ProductCard(
             image,
             Span("Product: ${product.marketHashName}"),
             Span("Currency: ${product.currency}"),
-            Span("Current Price: ${product.meanPrice ?: "-"}"),
+            Span("Current Price: ${product.minPrice ?: "-"}"),
             deleteButton
         )
     }

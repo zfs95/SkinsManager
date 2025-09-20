@@ -23,7 +23,7 @@ class DashboardNavbar(
         isPadding = true
         isSpacing = true
         alignItems = FlexComponent.Alignment.CENTER
-        justifyContentMode = JustifyContentMode.BETWEEN
+        justifyContentMode = FlexComponent.JustifyContentMode.BETWEEN
         style.set("background", "linear-gradient(90deg, #1c1c1c, #111111)")
         style.set("box-shadow", "0 2px 4px rgba(0,0,0,0.5)")
         style.set("padding", "10px 20px")

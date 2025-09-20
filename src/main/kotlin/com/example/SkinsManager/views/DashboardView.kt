@@ -1,11 +1,10 @@
 package com.example.SkinsManager.views
 
+import com.example.SkinsManager.components.ProductCard
 import com.example.SkinsManager.model.Product
 import com.example.SkinsManager.service.ProductService
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.combobox.ComboBox
-import com.vaadin.flow.component.html.Image
-import com.vaadin.flow.component.html.Span
 import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.component.orderedlayout.*
 import com.vaadin.flow.router.Route
@@ -132,66 +131,7 @@ class DashboardView(
         val ownedProducts = productService.getAllOwnedProducts()
 
         ownedProducts.forEach { ownedProduct ->
-            val product = ownedProduct.product
-            val card = VerticalLayout().apply {
-                width = "200px"
-                isPadding = true
-                isSpacing = true
-                style.set("border", "1px solid #333")
-                style.set("border-radius", "10px")
-                style.set("background-color", "#1e1e1e")
-                style.set("color", "#fff")
-                style.set("box-shadow", "0 2px 6px rgba(0,0,0,0.5)")
-                alignItems = FlexComponent.Alignment.CENTER
-
-                val imageUrl = product.imageUrl
-                    ?: "https://www.vhv.rs/dpng/d/30-306353_csgo-awp-skins-list-hd-png-download.png"
-
-                val image = Image(imageUrl, product.marketHashName).apply {
-                    width = "180px"
-                    height = "180px"
-                    style.set("border-radius", "5px")
-                    style.set("object-fit", "cover")
-                }
-
-                // --- Delete button ---
-                val deleteButton = Button("Delete").apply {
-                    style.set("background-color", "#f44336")
-                    style.set("color", "#fff")
-                    style.set("border", "none")
-                    style.set("border-radius", "5px")
-                    style.set("padding", "5px 12px")
-                    style.set("cursor", "pointer")
-                    addHoverEffect("#d32f2f", "#f44336")
-
-                    addClickListener {
-                        val confirm = com.vaadin.flow.component.dialog.Dialog().apply {
-                            val text = Span("Are you sure you want to delete ${product.marketHashName}?")
-                            val yes = Button("Yes") {
-                                runBlocking {
-                                    productService.deleteOwnedProduct(ownedProduct)
-                                }
-                                Notification.show("${product.marketHashName} deleted")
-                                refreshOwnedProducts()
-                                close()
-                            }.apply { style.set("margin-right", "10px") }
-
-                            val no = Button("No") { close() }
-
-                            add(HorizontalLayout(text, yes, no))
-                        }
-                        confirm.open()
-                    }
-                }
-
-                add(
-                    image,
-                    Span("Product: ${product.marketHashName}"),
-                    Span("Currency: ${product.currency}"),
-                    Span("Current Price: ${product.meanPrice ?: "-"}"),
-                    deleteButton  // <-- add button here
-                )
-            }
+            val card = ProductCard(ownedProduct, productService) { refreshOwnedProducts() }
             ownedProductsLayout.add(card)
         }
     }

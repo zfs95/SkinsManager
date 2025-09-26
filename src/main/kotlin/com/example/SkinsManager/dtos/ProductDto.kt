@@ -25,5 +25,6 @@ data class ProductDto(
     @JsonProperty("created_at")
     val createdAt: Long?,
     @JsonProperty("updated_at")
-    val updatedAt: Long?
+    val updatedAt: Long?,
+    val imageUrl: String? = null
 )

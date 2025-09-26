@@ -22,12 +22,15 @@ data class Product(
     val meanPrice: Double? = null,
     val medianPrice: Double? = null,
     val quantity: Int? = null,
-    val createdAtApi: Long? = null,
-    val updatedAtApi: Long? = null,
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null,
 
     @Column(nullable = false)
     val isActive: Boolean = true,
 
-    val imageUrl: String? = null,
-    val localImagePath: String? = null
+    var imageUrl: String? = null,
+    var localImagePath: String? = null,
+
+    @Column
+    val slug: String?
 )

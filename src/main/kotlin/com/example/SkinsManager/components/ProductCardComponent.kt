@@ -15,7 +15,7 @@ import kotlinx.coroutines.runBlocking
 class ProductCard(
     private val ownedProduct: OwnedProduct,
     private val productService: ProductService,
-    private val onDelete: () -> Unit // callback to refresh UI
+    private val onDelete: () -> Unit
 ) : VerticalLayout() {
 
     init {
@@ -32,7 +32,7 @@ class ProductCard(
         val product = ownedProduct.product
 
         val imageUrl = product.imageUrl
-            ?: "https://www.vhv.rs/dpng/d/30-306353_csgo-awp-skins-list-hd-png-download.png"
+            ?: "https://img.icons8.com/liquid-glass/96/question-mark.png"
 
         val image = Image(imageUrl, product.marketHashName).apply {
             width = "180px"
@@ -41,6 +41,13 @@ class ProductCard(
             style.set("object-fit", "cover")
         }
 
+        // Card click navigates to detail page
+        element.addEventListener("click") {
+            ui.ifPresent { it.navigate("product/${ownedProduct.id}") }
+        }
+        style.set("cursor", "pointer")
+
+        // --- Delete button ---
         val deleteButton = Button("Delete").apply {
             style.set("background-color", "#f44336")
             style.set("color", "#fff")
@@ -50,7 +57,19 @@ class ProductCard(
             style.set("cursor", "pointer")
             addHoverEffect("#d32f2f", "#f44336")
 
-            addClickListener {
+            // Stop parent click: add a JS listener directly
+            element.executeJs(
+                """
+        this.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        """.trimIndent()
+            )
+
+            // Stop card click propagation
+            addClickListener { event ->
+                event.source.element.executeJs("event.stopPropagation()")
+
                 val confirm = Dialog().apply {
                     val text = Span("Are you sure you want to delete ${product.marketHashName}?")
                     val yes = Button("Yes") {
@@ -68,12 +87,80 @@ class ProductCard(
             }
         }
 
+        // --- Image button ---
+        val imageButton = Button("Image").apply {
+            style.set("background-color", "#2196f3")
+            style.set("color", "#fff")
+            style.set("border", "none")
+            style.set("border-radius", "5px")
+            style.set("padding", "5px 12px")
+            style.set("cursor", "pointer")
+            addHoverEffect("#1976d2", "#2196f3")
+
+
+            // Add JS listener to stop click propagation
+            element.executeJs(
+                """
+        this.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        """.trimIndent()
+            )
+
+            addClickListener {
+
+                val dialog = Dialog().apply {
+                    val info = Span("Set image for ${product.marketHashName}:")
+                    val manualButton = Button("Manual URL") {
+                        val manualDialog = Dialog().apply {
+                            val urlField = com.vaadin.flow.component.textfield.TextField("Image URL")
+                            val save = Button("Save") {
+                                val newUrl = urlField.value.trim()
+                                if (newUrl.isNotEmpty()) {
+                                    image.src = newUrl
+                                    runBlocking {
+                                        productService.updateProductImage(product.id, newUrl)
+                                    }
+                                    Notification.show("Image updated manually")
+                                    close()
+                                } else {
+                                    Notification.show("Please enter a URL")
+                                }
+                            }
+                            val cancel = Button("Cancel") { close() }
+                            add(com.vaadin.flow.component.orderedlayout.HorizontalLayout(urlField))
+                            footer.add(HorizontalLayout(save, cancel))
+                        }
+                        manualDialog.open()
+                        close()
+                    }
+
+                    val autoButton = Button("Automatic Fetch") {
+                        runBlocking {
+                            val imageUrl = productService.fetchAndSaveProductImage(product.id)
+                            if (imageUrl != null) {
+                                image.src = imageUrl
+                                Notification.show("Image fetched automatically")
+                            } else {
+                                Notification.show("Failed to fetch image")
+                            }
+                        }
+                        close()
+                    }
+
+                    add(info)
+                    add(HorizontalLayout(manualButton, autoButton).apply { isSpacing = true })
+                }
+                dialog.open()
+            }
+        }
+
         add(
             image,
             Span("Product: ${product.marketHashName}"),
             Span("Currency: ${product.currency}"),
             Span("Current Price: ${product.minPrice ?: "-"}"),
-            deleteButton
+            HorizontalLayout(imageButton, deleteButton).apply { isSpacing = true }
         )
     }
 

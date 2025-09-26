@@ -14,5 +14,8 @@ data class OwnedProduct(
     val product: Product,
 
     @Column(nullable = false)
-    val addedAt: Instant = Instant.now()
+    val addedAt: Instant = Instant.now(),
+
+    @OneToMany(mappedBy = "ownedProduct", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val purchases: MutableList<Purchase> = mutableListOf()
 )

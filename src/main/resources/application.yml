@@ -8,6 +8,13 @@ spring:
   application:
     name: SkinsManager
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            loggerLevel: FULL
+
   jpa:
     database: POSTGRESQL
     generate-ddl: true

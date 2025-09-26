@@ -28,6 +28,7 @@ data class Product(
     @Column(nullable = false)
     val isActive: Boolean = true,
 
+    @Column(nullable = true, length = 2048)
     var imageUrl: String? = null,
     var localImagePath: String? = null,
 

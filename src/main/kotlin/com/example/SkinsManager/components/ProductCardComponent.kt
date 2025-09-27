@@ -29,6 +29,9 @@ class ProductCard(
         style.set("background-color", "#1e1e1e")
         style.set("color", "#fff")
         style.set("box-shadow", "0 2px 6px rgba(0,0,0,0.5)")
+        style.set("display", "flex")
+        style.set("flex-direction", "column")
+        style.set("cursor", "pointer")
         alignItems = FlexComponent.Alignment.CENTER
 
         val product = ownedProduct.product
@@ -47,7 +50,6 @@ class ProductCard(
         element.addEventListener("click") {
             ui.ifPresent { it.navigate("product/${ownedProduct.id}") }
         }
-        style.set("cursor", "pointer")
 
         // --- Delete button ---
         val deleteButton = Button("Delete").apply {
@@ -59,13 +61,12 @@ class ProductCard(
             style.set("cursor", "pointer")
             addHoverEffect("#d32f2f", "#f44336")
 
-            // Stop card click propagation
             element.executeJs(
                 """
-        this.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-        """.trimIndent()
+                this.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+                """.trimIndent()
             )
 
             addClickListener {
@@ -98,10 +99,10 @@ class ProductCard(
 
             element.executeJs(
                 """
-        this.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-        """.trimIndent()
+                this.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+                """.trimIndent()
             )
 
             addClickListener {
@@ -152,17 +153,40 @@ class ProductCard(
         // Format updatedAt as readable date
         val updatedDate = product.updatedAt?.let {
             val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            sdf.format(Date(it))
+            sdf.format(Date(it*1000))
         } ?: "-"
 
-        add(
-            image,
-            Span("Product: ${product.marketHashName}"),
-            Span("Updated: $updatedDate"),
-            Span("Market qty: ${product.quantity ?: "-"}"),
-            Span("Current Price: €${product.minPrice ?: "-"}"),
-            HorizontalLayout(imageButton, deleteButton).apply { isSpacing = true }
-        )
+        // --- Calculate total owned for this product safely ---
+        val totalOwned = runBlocking {
+            productService.getPurchasesForOwnedProduct(ownedProduct.id)
+                .sumOf { it.quantity }
+        }
+
+        // --- Content layout grows to push buttons to bottom ---
+        val contentLayout = VerticalLayout().apply {
+            isPadding = false
+            isSpacing = true
+            style.set("flex-grow", "1")
+            style.set("background-color", "#1e1e1e") // match the card's background
+            alignItems = FlexComponent.Alignment.CENTER
+
+            add(
+                image,
+                Span("Product: ${product.marketHashName}"),
+                Span("Updated: $updatedDate"),
+                Span("Market qty: ${product.quantity ?: "-"}"),
+                Span("Owned qty: $totalOwned"),
+                Span("Current Price: €${product.minPrice ?: "-"}")
+            )
+        }
+
+        val buttonLayout = HorizontalLayout(imageButton, deleteButton).apply {
+            isSpacing = true
+            width = "100%"
+            justifyContentMode = FlexComponent.JustifyContentMode.CENTER
+        }
+
+        add(contentLayout, buttonLayout)
     }
 
     private fun Button.addHoverEffect(hoverColor: String, normalColor: String) {

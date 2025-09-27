@@ -35,4 +35,6 @@ interface OwnedProductRepository : JpaRepository<OwnedProduct, Long> {
 
     @Query("SELECT o FROM OwnedProduct o JOIN FETCH o.product LEFT JOIN FETCH o.purchases")
     fun findAllWithProductAndPurchases(): List<OwnedProduct>
+
+    fun findOwnedProductByProductId(productId: Long): OwnedProduct?
 }

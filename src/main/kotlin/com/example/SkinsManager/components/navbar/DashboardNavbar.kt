@@ -41,15 +41,28 @@ class DashboardNavbar(
         icon.element.style.set("margin-right", "5px")
     }
 
-    // Current stash value display
-    private val stashValue: Span = Span().apply {
-        val summary = productService.getPortfolioOverview().first
-        val formatted = NumberFormat.getCurrencyInstance(Locale.GERMANY)
-            .format(summary.currentValue)
-        text = "Current stash value: $formatted"
+    // Fetch portfolio overview
+    private val portfolioOverview = productService.getPortfolioOverview().first
+
+    // Format numbers
+    private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.GERMANY)
+
+    // Total paid
+    private val paidSpan = Span("Paid: ${currencyFormatter.format(portfolioOverview.totalCost)}").apply {
         style.set("color", "white")
-        style.set("margin-left", "20px")
-        style.set("font-weight", "bold")
+        style.set("font-size", "0.9em")
+    }
+
+    // Current stash value
+    private val currentSpan = Span("Current market: ${currencyFormatter.format(portfolioOverview.currentValue)}").apply {
+        style.set("color", "white")
+        style.set("font-size", "0.9em")
+    }
+
+    // Profit
+    private val profitSpan = Span("Profit: ${currencyFormatter.format(portfolioOverview.profit)}").apply {
+        style.set("font-size", "0.9em")
+        style.set("color", if (portfolioOverview.profit >= 0) "limegreen" else "red")
     }
 
     init {
@@ -62,20 +75,34 @@ class DashboardNavbar(
         style.set("box-shadow", "0 2px 4px rgba(0,0,0,0.5)")
         style.set("padding", "10px 20px")
 
-        // Left part: search + add + update
-        val leftGroup = HorizontalLayout(searchBox, addButton, updateButton, stashValue).apply {
+
+        // Make the portfolio info spans bold
+        paidSpan.style.set("font-weight", "bold")
+        currentSpan.style.set("font-weight", "bold")
+        // Profit color stays conditional (green/red)
+        profitSpan.style.set("font-weight", "bold")
+
+// Left part: search + add + update + spacing + portfolio info
+        val leftGroup = HorizontalLayout(searchBox, addButton, updateButton).apply {
             isSpacing = true
             alignItems = FlexComponent.Alignment.CENTER
-            style.set("gap", "10px")
         }
 
-        // Right part: home + portfolio
+// Extra spacing wrapper for portfolio info
+        val portfolioInfoLayout = HorizontalLayout(paidSpan, currentSpan, profitSpan).apply {
+            isSpacing = true
+            style.set("margin-left", "20px") // this pushes it away from the buttons
+            alignItems = FlexComponent.Alignment.CENTER
+        }
+
+// Right part: home + portfolio
         val rightGroup = HorizontalLayout(homeButton, portfolioButton).apply {
             isSpacing = true
             alignItems = FlexComponent.Alignment.CENTER
         }
 
-        add(leftGroup, rightGroup)
-        expand(leftGroup) // push rightGroup to the right
+// Add both groups
+        add(leftGroup, portfolioInfoLayout, rightGroup)
+        expand(leftGroup) // push the rightGroup to the far right
     }
 }

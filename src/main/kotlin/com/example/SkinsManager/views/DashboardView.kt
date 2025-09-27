@@ -3,6 +3,7 @@ package com.example.SkinsManager.views
 import com.example.SkinsManager.components.ProductCard
 import com.example.SkinsManager.components.navbar.DashboardNavbar
 import com.example.SkinsManager.service.ProductService
+import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.orderedlayout.FlexLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import com.vaadin.flow.router.Route
@@ -18,9 +19,9 @@ class DashboardView(
         setSizeFull()
         isPadding = false
         isSpacing = false
-        style.set("background-color", "#121212") // page background
+        style.set("background-color", "#121212") // layout background
 
-        // --- Navbar (refactored into its own component) ---
+        // --- Navbar ---
         val navbar = DashboardNavbar(productService) { refreshOwnedProducts() }
         add(navbar)
 

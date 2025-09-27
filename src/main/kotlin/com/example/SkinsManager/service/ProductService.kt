@@ -2,6 +2,7 @@ package com.example.SkinsManager.service
 
 import com.example.SkinsManager.client.AssetClient
 import com.example.SkinsManager.client.SkinportClient
+import com.example.SkinsManager.dtos.HistoryDto
 import com.example.SkinsManager.dtos.OwnedProductDto
 import com.example.SkinsManager.dtos.PortfolioProduct
 import com.example.SkinsManager.dtos.PortfolioSummary
@@ -16,10 +17,8 @@ import com.example.SkinsManager.repository.PurchaseRepository
 import kotlinx.coroutines.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Logger
-import kotlin.times
 
 @Service
 class ProductService(
@@ -120,13 +119,20 @@ class ProductService(
     /**
      * Add a product to dashboard if not already added
      */
+    @Transactional
     fun addProductToDashboard(product: Product): OwnedProduct {
-        val existing = ownedProductRepository.findWithProductById(product.id)
-        if (existing != null) return existing
+        val existing = ownedProductRepository.findOwnedProductByProductId(product.id)
+        if (existing != null) {
+            return existing
+        }
 
-        val ownedProduct = OwnedProduct(product = product)
-        return ownedProductRepository.save(ownedProduct)
+        val newOwned = OwnedProduct(
+            product = product,
+            addedAt = java.time.Instant.now()
+        )
+        return ownedProductRepository.save(newOwned)
     }
+
 
     /**
      * Search products from catalog by name (used for search bar)
@@ -142,8 +148,8 @@ class ProductService(
     }
 
     fun getPurchasesForOwnedProduct(ownedProductId: Long): List<Purchase> {
-        val ownedProduct = ownedProductRepository.findById(ownedProductId)
-            .orElseThrow { IllegalArgumentException("Owned product not found: $ownedProductId") }
+        val ownedProduct = ownedProductRepository.findByIdWithProductAndPurchases(ownedProductId)
+            ?: throw IllegalArgumentException("Owned product not found: $ownedProductId")
 
         return ownedProduct.purchases
     }
@@ -309,5 +315,43 @@ class ProductService(
         )
 
         return summary to products
+    }
+
+    @Transactional
+    fun updateHistory(request: List<HistoryDto>) {
+        val failures = mutableListOf<String>()
+        val successes = mutableListOf<String>()
+
+        for (dto in request) {
+            try {
+                // 1. Find product
+                val product = productRepository.findProductByMarketHashName(dto.marketName)
+                    ?: throw IllegalArgumentException("Product not found: ${dto.marketName}")
+
+                // 2. Add product to dashboard (or reuse if already present)
+                val ownedProduct = addProductToDashboard(product)
+
+                // 3. Create a new purchase
+                val purchase = Purchase(
+                    ownedProduct = ownedProduct,
+                    unitPrice = dto.displayPrice,
+                    quantity = 1, // History items are single units, right? Adjust if needed
+                    purchaseDate = java.time.LocalDate.now()
+                )
+
+                purchaseRepository.save(purchase)
+                successes.add("Added purchase for ${dto.marketName} at €${dto.displayPrice}")
+
+            } catch (ex: Exception) {
+                failures.add("Failed for ${dto.marketName}: ${ex.message}")
+                logger.warning("Failed for ${dto.marketName}: ${ex.message}")
+            }
+        }
+
+        // Final summary log
+        logger.info("History update completed")
+        logger.info("Successes: ${successes.size}, Failures: ${failures.size}")
+        successes.forEach { logger.info(it) }
+        failures.forEach { logger.warning(it) }
     }
 }

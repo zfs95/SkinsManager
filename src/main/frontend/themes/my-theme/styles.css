@@ -1,0 +1,31 @@
+:host {
+    background-color: #121212;
+    color: white;
+}
+
+/* Apply to Vaadin layout components */
+vaadin-app-layout,
+vaadin-vertical-layout,
+vaadin-flex-layout {
+    background-color: #121212;
+}
+
+/* Ensure body and html are also dark */
+body, html {
+    background-color: #121212;
+    color: white;
+    margin: 0;
+    height: 100%;
+}
+
+/* Ensure scrolling containers also inherit background */
+#outlet, .v-scrollable, vaadin-app-layout {
+    background-color: #121212;
+}
+
+/* Notification styling */
+vaadin-notification-card {
+    /*background-color: #333 !important; !* dark gray background *!*/
+    color: black !important;             /* white text */
+    font-weight: bold;
+}

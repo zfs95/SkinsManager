@@ -28,6 +28,7 @@ class ProductService(
     private val ownedProductRepository: OwnedProductRepository,
     private val purchaseRepository: PurchaseRepository,
     private val assetClient: AssetClient,
+    private val searchEngine: ProductSearchService
 ) {
 
     private val logger = Logger.getLogger(ProductService::class.java.name)
@@ -83,7 +84,8 @@ class ProductService(
                 isActive = true,
                 slug = extractSlug(dto.itemPage)
             )
-            productRepository.save(newProduct)
+            val savedProduct = productRepository.save(newProduct)
+            searchEngine.addOrUpdateProduct(savedProduct)
             addedCount.incrementAndGet()
             logger.info("Added product: ${dto.marketHashName}")
         } else {
@@ -103,7 +105,8 @@ class ProductService(
                 isActive = true,
                 slug = extractSlug(dto.itemPage)
             )
-            productRepository.save(updated)
+            val savedProduct = productRepository.save(updated)
+            searchEngine.addOrUpdateProduct(savedProduct)
             updatedCount.incrementAndGet()
             logger.info("Updated product: ${dto.marketHashName}")
         }
@@ -129,7 +132,9 @@ class ProductService(
      * Search products from catalog by name (used for search bar)
      */
     fun searchProducts(query: String): List<Product> {
-        return productRepository.findProductsByMarketHashNameContainingIgnoreCase(query)
+//        return productRepository.findProductsByMarketHashNameContainingIgnoreCase(query)
+        val ids = searchEngine.search(query)
+        return productRepository.findAllById(ids)
     }
 
     fun deleteOwnedProduct(ownedProduct: OwnedProduct) {

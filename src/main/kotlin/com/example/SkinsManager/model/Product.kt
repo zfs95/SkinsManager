@@ -28,7 +28,7 @@ data class Product(
     @Column(nullable = false)
     val isActive: Boolean = true,
 
-    @Column(nullable = true, length = 2048)
+    @Column(columnDefinition = "TEXT", nullable = true)
     var imageUrl: String? = null,
     var localImagePath: String? = null,
 

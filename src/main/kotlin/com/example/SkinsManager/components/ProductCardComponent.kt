@@ -11,6 +11,8 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import kotlinx.coroutines.runBlocking
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ProductCard(
     private val ownedProduct: OwnedProduct,
@@ -57,7 +59,7 @@ class ProductCard(
             style.set("cursor", "pointer")
             addHoverEffect("#d32f2f", "#f44336")
 
-            // Stop parent click: add a JS listener directly
+            // Stop card click propagation
             element.executeJs(
                 """
         this.addEventListener('click', function(e) {
@@ -66,10 +68,7 @@ class ProductCard(
         """.trimIndent()
             )
 
-            // Stop card click propagation
-            addClickListener { event ->
-                event.source.element.executeJs("event.stopPropagation()")
-
+            addClickListener {
                 val confirm = Dialog().apply {
                     val text = Span("Are you sure you want to delete ${product.marketHashName}?")
                     val yes = Button("Yes") {
@@ -97,8 +96,6 @@ class ProductCard(
             style.set("cursor", "pointer")
             addHoverEffect("#1976d2", "#2196f3")
 
-
-            // Add JS listener to stop click propagation
             element.executeJs(
                 """
         this.addEventListener('click', function(e) {
@@ -108,7 +105,6 @@ class ProductCard(
             )
 
             addClickListener {
-
                 val dialog = Dialog().apply {
                     val info = Span("Set image for ${product.marketHashName}:")
                     val manualButton = Button("Manual URL") {
@@ -118,9 +114,7 @@ class ProductCard(
                                 val newUrl = urlField.value.trim()
                                 if (newUrl.isNotEmpty()) {
                                     image.src = newUrl
-                                    runBlocking {
-                                        productService.updateProductImage(product.id, newUrl)
-                                    }
+                                    runBlocking { productService.updateProductImage(product.id, newUrl) }
                                     Notification.show("Image updated manually")
                                     close()
                                 } else {
@@ -155,11 +149,18 @@ class ProductCard(
             }
         }
 
+        // Format updatedAt as readable date
+        val updatedDate = product.updatedAt?.let {
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            sdf.format(Date(it))
+        } ?: "-"
+
         add(
             image,
             Span("Product: ${product.marketHashName}"),
-            Span("Currency: ${product.currency}"),
-            Span("Current Price: ${product.minPrice ?: "-"}"),
+            Span("Updated: $updatedDate"),
+            Span("Market qty: ${product.quantity ?: "-"}"),
+            Span("Current Price: €${product.minPrice ?: "-"}"),
             HorizontalLayout(imageButton, deleteButton).apply { isSpacing = true }
         )
     }

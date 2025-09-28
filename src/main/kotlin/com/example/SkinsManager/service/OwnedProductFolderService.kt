@@ -1,15 +1,18 @@
 package com.example.SkinsManager.service
 
+import com.example.SkinsManager.dtos.FolderOverview
 import com.example.SkinsManager.model.OwnedProductFolder
 import com.example.SkinsManager.repository.OwnedProductFolderRepository
 import com.example.SkinsManager.repository.OwnedProductRepository
 import jakarta.transaction.Transactional
+import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Service
 
 @Service
 class OwnedProductFolderService (
     val ownedProductRepository: OwnedProductRepository,
-    val folderRepository: OwnedProductFolderRepository
+    val folderRepository: OwnedProductFolderRepository,
+    val productService: ProductService
 ) {
 
     @Transactional
@@ -73,5 +76,29 @@ class OwnedProductFolderService (
         folder.imageUrl = newImageUrl
 
         folderRepository.save(folder)
+    }
+
+    @Transactional
+    fun getFolderOverview(folder: OwnedProductFolder): FolderOverview = runBlocking {
+        val managedFolder = folderRepository.findById(folder.id)
+            .orElseThrow { IllegalArgumentException("Folder not found: ${folder.id}") }
+
+        val ownedProducts = managedFolder.ownedProducts // loaded inside active transaction
+
+        val totalCost = ownedProducts.sumOf { owned ->
+            productService.getPurchasesForOwnedProduct(owned.id).sumOf { it.unitPrice * it.quantity }
+        }
+
+        val currentValue = ownedProducts.sumOf { owned ->
+            val minPrice = owned.product.minPrice ?: 0.0
+            val totalQty = productService.getPurchasesForOwnedProduct(owned.id).sumOf { it.quantity }
+            minPrice * totalQty
+        }
+
+        FolderOverview(
+            totalCost = totalCost,
+            currentValue = currentValue,
+            profit = currentValue - totalCost
+        )
     }
 }

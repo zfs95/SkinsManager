@@ -11,6 +11,8 @@ import com.vaadin.flow.component.textfield.TextField
 import com.example.SkinsManager.model.OwnedProductFolder
 import com.example.SkinsManager.service.OwnedProductFolderService
 import kotlinx.coroutines.runBlocking
+import java.text.NumberFormat
+import java.util.*
 
 class FolderCard(
     private val folder: OwnedProductFolder,
@@ -28,6 +30,7 @@ class FolderCard(
         style.set("color", "#fff")
         style.set("cursor", "pointer")
         alignItems = FlexComponent.Alignment.CENTER
+        isSpacing = false
 
         val image = Image(
             folder.imageUrl ?: "https://img.icons8.com/fluency/96/folder-invoices.png",
@@ -38,12 +41,46 @@ class FolderCard(
             style.set("object-fit", "cover")
         }
 
-        val title = Span(folder.name)
+        val title = Span(folder.name).apply {
+            style.set("font-weight", "bold")
+            style.set("margin-top", "10px")
+        }
 
+        // --- Folder overview (only showing profit, keeping others commented) ---
+        val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.GERMANY)
+        val overview = folderService.getFolderOverview(folder)
+
+        // val paidSpan = Span("Paid: ${currencyFormatter.format(overview.totalCost)}").apply {
+        //     style.set("font-size", "12px")
+        // }
+        // val currentSpan = Span("Current: ${currencyFormatter.format(overview.currentValue)}").apply {
+        //     style.set("font-size", "12px")
+        // }
+
+        val profitSpan = Span("Profit: ${currencyFormatter.format(overview.profit)}").apply {
+            style.set("font-size", "12px")
+            style.set("font-weight", "bold")
+            style.set("color", if (overview.profit >= 0) "limegreen" else "red")
+        }
+
+        val overviewLayout = VerticalLayout(
+            // paidSpan,
+            // currentSpan,
+            profitSpan
+        ).apply {
+            isSpacing = false
+            alignItems = FlexComponent.Alignment.CENTER
+            style.set("background", "transparent")
+            style.set("padding", "0px")
+            style.set("margin", "0px")
+        }
+
+        // --- Card click opens folder ---
         element.addEventListener("click") {
             onOpen(folder)
         }
 
+        // --- Buttons ---
         val deleteButton = Button("Delete").apply {
             style.set("background-color", "#f44336")
             style.set("color", "#fff")
@@ -115,6 +152,7 @@ class FolderCard(
             justifyContentMode = FlexComponent.JustifyContentMode.CENTER
         }
 
-        add(image, title, buttonLayout)
+        // --- Assemble card ---
+        add(image, title, overviewLayout, buttonLayout)
     }
 }

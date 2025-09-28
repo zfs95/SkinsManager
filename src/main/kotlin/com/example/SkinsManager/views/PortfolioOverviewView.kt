@@ -38,21 +38,23 @@ class PortfolioOverviewView(
         val overviewCard = PortfolioOverviewCard(summary)
         content.add(overviewCard)
 
-        val grid = Grid(PortfolioProduct::class.java).apply {
+        val grid = Grid<PortfolioProduct>().apply {
             setWidthFull()
             addColumn(PortfolioProduct::productName).setHeader("Product")
             addColumn(PortfolioProduct::totalPaid)
                 .setHeader("Paid (€)")
-                .setFooter("Total: €${"%.2f".format(summary.totalCost)}")
+                .setFooter("Total Paid: €${"%.2f".format(summary.totalCost)}")
             addColumn(PortfolioProduct::currentValue)
                 .setHeader("Current (€)")
-                .setFooter("Total: €${"%.2f".format(summary.currentValue)}")
-            addComponentColumn { p ->
-                val profitSpan = Span("€${"%.2f".format(p.profit)}").apply {
-                    style.set("color", if (p.profit >= 0) "limegreen" else "red")
+                .setFooter("Total Current: €${"%.2f".format(summary.currentValue)}")
+            addComponentColumn { product: PortfolioProduct ->
+                Span("€${"%.2f".format(product.profit)}").apply {
+                    style.set("color", if (product.profit >= 0) "limegreen" else "red")
                 }
-                profitSpan
             }.setHeader("Profit/Loss")
+                .setComparator { a, b -> a.profit.compareTo(b.profit) }  // sorting works
+                .setFooter("Total Profit: €${"%.2f".format(summary.profit)}")
+
             setItems(products)
             addThemeVariants(GridVariant.LUMO_ROW_STRIPES)
         }

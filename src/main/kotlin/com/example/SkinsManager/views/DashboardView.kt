@@ -35,17 +35,33 @@ class DashboardView(
         val navbar = DashboardNavbar(productService) { refreshDashboard() }
         add(navbar)
 
-        // --- Toolbar ---
+// --- Toolbar ---
         val toolbar = HorizontalLayout().apply {
+            setWidthFull()
+            style.set("padding", "10px 20px")
+            isSpacing = true
+
+            // Move to Folder button
             val moveButton = Button("Move to Folder").apply {
+                style.set("background-color", "#2196f3") // blue
+                style.set("color", "#fff")
+                style.set("border-radius", "5px")
+                style.set("padding", "5px 12px")
                 addClickListener { openMoveDialog() }
             }
+
+            // Create Folder button
             val createFolderButton = Button("Create Folder").apply {
+                style.set("background-color", "#4caf50") // green
+                style.set("color", "#fff")
+                style.set("border-radius", "5px")
+                style.set("padding", "5px 12px")
                 addClickListener {
                     folderService.createFolder("New Folder")
                     refreshDashboard()
                 }
             }
+
             add(moveButton, createFolderButton)
         }
         add(toolbar)

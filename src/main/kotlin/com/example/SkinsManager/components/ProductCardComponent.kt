@@ -3,6 +3,7 @@ package com.example.SkinsManager.components
 import com.example.SkinsManager.model.OwnedProduct
 import com.example.SkinsManager.service.ProductService
 import com.vaadin.flow.component.button.Button
+import com.vaadin.flow.component.checkbox.Checkbox
 import com.vaadin.flow.component.dialog.Dialog
 import com.vaadin.flow.component.html.Image
 import com.vaadin.flow.component.html.Span
@@ -17,7 +18,8 @@ import java.util.*
 class ProductCard(
     private val ownedProduct: OwnedProduct,
     private val productService: ProductService,
-    private val onDelete: () -> Unit
+    private val onDelete: () -> Unit,
+    private val onSelect: ((OwnedProduct, Boolean) -> Unit)? = null
 ) : VerticalLayout() {
 
     init {
@@ -35,10 +37,40 @@ class ProductCard(
         alignItems = FlexComponent.Alignment.CENTER
 
         val product = ownedProduct.product
+        val imageUrl = product.imageUrl ?: "https://img.icons8.com/liquid-glass/96/question-mark.png"
 
-        val imageUrl = product.imageUrl
-            ?: "https://img.icons8.com/liquid-glass/96/question-mark.png"
+        // --- Checkbox with bigger clickable area ---
+        val selectBox = Checkbox().apply {
+            style.set("width", "28px")
+            style.set("height", "28px")
+            element.executeJs("""
+                this.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            """.trimIndent())
+            addValueChangeListener { e ->
+                onSelect?.invoke(ownedProduct, e.value)
+            }
+        }
 
+// Wrap checkbox in a bigger container
+        val checkboxContainer = HorizontalLayout(selectBox).apply {
+            setWidthFull()
+            setHeight("50px")                     // increase clickable height
+            alignItems = FlexComponent.Alignment.CENTER
+            justifyContentMode = FlexComponent.JustifyContentMode.CENTER
+            style.set("padding", "8px")           // more padding around
+            element.executeJs("""
+        this.addEventListener('click', function(e) {
+            e.stopPropagation();          // avoid card click
+            this.querySelector('vaadin-checkbox').click(); // toggle checkbox when container clicked
+        });
+    """.trimIndent())
+        }
+
+        if (onSelect != null) add(checkboxContainer)
+
+        // --- Product image ---
         val image = Image(imageUrl, product.marketHashName).apply {
             width = "180px"
             height = "180px"
@@ -46,7 +78,7 @@ class ProductCard(
             style.set("object-fit", "cover")
         }
 
-        // Card click navigates to detail page
+        // --- Card click navigates to detail ---
         element.addEventListener("click") {
             ui.ifPresent { it.navigate("product/${ownedProduct.id}") }
         }
@@ -61,13 +93,11 @@ class ProductCard(
             style.set("cursor", "pointer")
             addHoverEffect("#d32f2f", "#f44336")
 
-            element.executeJs(
-                """
+            element.executeJs("""
                 this.addEventListener('click', function(e) {
                     e.stopPropagation();
                 });
-                """.trimIndent()
-            )
+            """.trimIndent())
 
             addClickListener {
                 val confirm = Dialog().apply {
@@ -97,13 +127,11 @@ class ProductCard(
             style.set("cursor", "pointer")
             addHoverEffect("#1976d2", "#2196f3")
 
-            element.executeJs(
-                """
+            element.executeJs("""
                 this.addEventListener('click', function(e) {
                     e.stopPropagation();
                 });
-                """.trimIndent()
-            )
+            """.trimIndent())
 
             addClickListener {
                 val dialog = Dialog().apply {
@@ -118,9 +146,7 @@ class ProductCard(
                                     runBlocking { productService.updateProductImage(product.id, newUrl) }
                                     Notification.show("Image updated manually")
                                     close()
-                                } else {
-                                    Notification.show("Please enter a URL")
-                                }
+                                } else Notification.show("Please enter a URL")
                             }
                             val cancel = Button("Cancel") { close() }
                             add(com.vaadin.flow.component.orderedlayout.HorizontalLayout(urlField))
@@ -136,9 +162,7 @@ class ProductCard(
                             if (imageUrl != null) {
                                 image.src = imageUrl
                                 Notification.show("Image fetched automatically")
-                            } else {
-                                Notification.show("Failed to fetch image")
-                            }
+                            } else Notification.show("Failed to fetch image")
                         }
                         close()
                     }
@@ -150,24 +174,21 @@ class ProductCard(
             }
         }
 
-        // Format updatedAt as readable date
+        // --- Content layout ---
         val updatedDate = product.updatedAt?.let {
             val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             sdf.format(Date(it*1000))
         } ?: "-"
 
-        // --- Calculate total owned for this product safely ---
         val totalOwned = runBlocking {
-            productService.getPurchasesForOwnedProduct(ownedProduct.id)
-                .sumOf { it.quantity }
+            productService.getPurchasesForOwnedProduct(ownedProduct.id).sumOf { it.quantity }
         }
 
-        // --- Content layout grows to push buttons to bottom ---
         val contentLayout = VerticalLayout().apply {
             isPadding = false
             isSpacing = true
             style.set("flex-grow", "1")
-            style.set("background-color", "#1e1e1e") // match the card's background
+            style.set("background-color", "#1e1e1e")
             alignItems = FlexComponent.Alignment.CENTER
 
             add(
@@ -194,3 +215,4 @@ class ProductCard(
         element.setProperty("onmouseleave", "this.style.backgroundColor='$normalColor'")
     }
 }
+

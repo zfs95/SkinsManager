@@ -9,6 +9,7 @@ import com.example.SkinsManager.dtos.PortfolioSummary
 import com.example.SkinsManager.dtos.ProductDto
 import com.example.SkinsManager.dtos.PurchaseDto
 import com.example.SkinsManager.model.OwnedProduct
+import com.example.SkinsManager.model.OwnedProductFolder
 import com.example.SkinsManager.model.Product
 import com.example.SkinsManager.model.Purchase
 import com.example.SkinsManager.repository.OwnedProductRepository
@@ -354,4 +355,14 @@ class ProductService(
         successes.forEach { logger.info(it) }
         failures.forEach { logger.warning(it) }
     }
+
+    @Transactional
+    fun getOwnedProductsOnDashboard(): List<OwnedProduct> {
+        return ownedProductRepository.findOwnedProductsOnDashboard()
+    }
+
+    fun findByIdWithOwnedProducts(folderId: Long): OwnedProductFolder? {
+        return ownedProductRepository.findByIdWithOwnedProducts(folderId)
+    }
+
 }

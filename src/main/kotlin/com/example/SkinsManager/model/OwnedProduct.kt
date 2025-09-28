@@ -17,5 +17,9 @@ data class OwnedProduct(
     val addedAt: Instant = Instant.now(),
 
     @OneToMany(mappedBy = "ownedProduct", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val purchases: MutableList<Purchase> = mutableListOf()
+    val purchases: MutableList<Purchase> = mutableListOf(),
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id", nullable = true)
+    var folder: OwnedProductFolder? = null
 )

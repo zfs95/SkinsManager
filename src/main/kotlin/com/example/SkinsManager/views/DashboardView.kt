@@ -43,7 +43,7 @@ class DashboardView(
         val navbar = DashboardNavbar(productService) { refreshDashboard() }
         add(navbar)
 
-        // --- Toolbar ---
+// --- Toolbar ---
         val toolbar = HorizontalLayout().apply {
             setWidthFull()
             style.set("padding", "10px 20px")
@@ -51,16 +51,16 @@ class DashboardView(
 
             // Move to Folder button
             val moveButton = Button("Move to Folder").apply {
-                style.set("background-color", "#2196f3")
+                style.set("background-color", "#2196f3") // blue
                 style.set("color", "#fff")
                 style.set("border-radius", "5px")
                 style.set("padding", "5px 12px")
                 addClickListener { openMoveDialog() }
             }
 
-            // Create Folder button
+            // Create Folder button with new color
             val createFolderButton = Button("Create Folder").apply {
-                style.set("background-color", "#4caf50")
+                style.set("background-color", "#ff9800") // orange/yellow accent
                 style.set("color", "#fff")
                 style.set("border-radius", "5px")
                 style.set("padding", "5px 12px")
@@ -70,7 +70,42 @@ class DashboardView(
                 }
             }
 
-            val buttonsLayout = HorizontalLayout(moveButton, createFolderButton).apply { isSpacing = true }
+            // Sort by Name button (for products)
+            var sortAscending = true
+            val sortByNameButton = Button("Sort by Name ↑").apply {
+                style.set("background-color", "#4caf50") // green
+                style.set("color", "#fff")
+                style.set("border-radius", "5px")
+                style.set("padding", "5px 12px")
+                addClickListener {
+                    ownedProductsLayout.removeAll()
+                    val ownedProducts = productService.getOwnedProductsOnDashboard()
+                    val sortedProducts = if (sortAscending) {
+                        ownedProducts.sortedBy { it.product.marketHashName.lowercase() }
+                    } else {
+                        ownedProducts.sortedByDescending { it.product.marketHashName.lowercase() }
+                    }
+                    sortedProducts.forEach { ownedProduct ->
+                        val card = ProductCard(
+                            ownedProduct,
+                            productService,
+                            onDelete = { refreshDashboard() }
+                        ) { product, selected ->
+                            if (selected) selectedProducts.add(product)
+                            else selectedProducts.remove(product)
+                        }
+                        ownedProductsLayout.add(card)
+                    }
+                    sortAscending = !sortAscending
+                    text = if (sortAscending) "Sort by Name ↑" else "Sort by Name ↓"
+                }
+            }
+
+            // Buttons layout: Move + Create + Sort
+            val buttonsLayout = HorizontalLayout(moveButton, createFolderButton, sortByNameButton).apply {
+                isSpacing = true
+                style.set("gap", "10px")
+            }
 
             // Status layout
             val statusLayout = HorizontalLayout(lastUpdateLabel, productsUpdatedLabel, productsAddedLabel).apply {
@@ -83,6 +118,7 @@ class DashboardView(
         }
         add(toolbar)
 
+
         // --- Folders layout ---
         foldersLayout.apply {
             setWidthFull()
@@ -92,7 +128,8 @@ class DashboardView(
         }
         add(foldersLayout)
 
-        // --- Owned products layout ---
+
+// --- Owned products layout ---
         ownedProductsLayout.apply {
             setWidthFull()
             style.set("gap", "20px")
@@ -100,6 +137,10 @@ class DashboardView(
             style.set("padding", "20px")
         }
         add(ownedProductsLayout)
+
+// Initial load of products
+        refreshDashboard()
+
 
         refreshDashboard()
         refreshUpdateStatus()

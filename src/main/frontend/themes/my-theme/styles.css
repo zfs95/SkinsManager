@@ -29,3 +29,27 @@ vaadin-notification-card {
     color: black !important;             /* white text */
     font-weight: bold;
 }
+
+/* General button styling */
+vaadin-button {
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out; /* smooth hover/press transition */
+}
+
+/* Hover effect */
+vaadin-button:hover {
+    transform: translateY(-2px); /* subtle lift */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* soft shadow */
+    filter: brightness(1.1); /* slightly brighter */
+}
+
+/* Active / pressed effect */
+vaadin-button:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.0);
+}

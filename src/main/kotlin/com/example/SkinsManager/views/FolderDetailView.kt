@@ -3,6 +3,7 @@ package com.example.SkinsManager.views
 import com.example.SkinsManager.components.ProductCard
 import com.example.SkinsManager.components.navbar.DashboardNavbar
 import com.example.SkinsManager.model.OwnedProduct
+import com.example.SkinsManager.model.UpdateHistory
 import com.example.SkinsManager.service.OwnedProductFolderService
 import com.example.SkinsManager.service.ProductService
 import com.vaadin.flow.component.button.Button
@@ -17,6 +18,7 @@ import com.vaadin.flow.router.BeforeEvent
 import com.vaadin.flow.router.HasUrlParameter
 import com.vaadin.flow.router.Route
 import kotlinx.coroutines.runBlocking
+import java.time.format.DateTimeFormatter
 
 @Route("folder")
 class FolderDetailView(
@@ -47,10 +49,99 @@ class FolderDetailView(
     private fun refreshFolder(folderId: Long) {
         val folder = folderService.getFolderById(folderId) ?: return
 
-        removeAll()  // remove previous content to refresh
+        removeAll()  // remove previous content
         add(DashboardNavbar(productService) { refreshFolder(currentFolderId) })
 
-        // --- Top header with folder name and image ---
+        // --- Status info labels ---
+        val latestUpdate: UpdateHistory? = productService.getLastestUpdate()
+        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy HH:mm")
+
+        val lastUpdateLabel = Span("Last Update: ${latestUpdate?.updatedAt?.format(formatter) ?: "-"}").apply {
+            style.set("color", "#ccc")
+        }
+        val productsUpdatedLabel = Span("Products Updated: ${latestUpdate?.updatedProducts ?: "-"}").apply {
+            style.set("color", "#ccc")
+        }
+        val productsAddedLabel = Span("Products Added: ${latestUpdate?.addedProducts ?: "-"}").apply {
+            style.set("color", "#ccc")
+        }
+
+        val statusLayout = HorizontalLayout(lastUpdateLabel, productsUpdatedLabel, productsAddedLabel).apply {
+            isSpacing = true
+            setAlignItems(FlexComponent.Alignment.CENTER)
+        }
+
+        // --- Buttons ---
+        val backButton = Button("Back").apply {
+            style.set("background-color", "#757575")
+            style.set("color", "#fff")
+            style.set("border-radius", "5px")
+            style.set("padding", "5px 12px")
+            addClickListener { ui.ifPresent { it.navigate("") } }
+        }
+
+        val moveToDashboardButton = Button("Move to Dashboard").apply {
+            style.set("background-color", "#2196f3")
+            style.set("color", "#fff")
+            style.set("border-radius", "5px")
+            style.set("padding", "5px 12px")
+            addClickListener {
+                if (selectedProducts.isEmpty()) {
+                    Notification.show("No products selected")
+                    return@addClickListener
+                }
+                runBlocking {
+                    folderService.removeOwnedProductsFromFolder(selectedProducts.map { it.id })
+                }
+                selectedProducts.clear()
+                refreshFolder(currentFolderId)
+            }
+        }
+
+        var sortAscending = true
+        val sortByNameButton = Button("Sort by Name ↑").apply {
+            style.set("background-color", "#4caf50")
+            style.set("color", "#fff")
+            style.set("border-radius", "5px")
+            style.set("padding", "5px 12px")
+            addClickListener {
+                folderProductsLayout.removeAll()
+                val sortedProducts = if (sortAscending) {
+                    folder.ownedProducts.sortedBy { it.product.marketHashName.lowercase() }
+                } else {
+                    folder.ownedProducts.sortedByDescending { it.product.marketHashName.lowercase() }
+                }
+                sortedProducts.forEach { owned ->
+                    folderProductsLayout.add(
+                        ProductCard(owned, productService, onDelete = { refreshFolder(folderId) }) { product, selected ->
+                            if (selected) selectedProducts.add(product)
+                            else selectedProducts.remove(product)
+                        }
+                    )
+                }
+                sortAscending = !sortAscending
+                text = if (sortAscending) "Sort by Name ↑" else "Sort by Name ↓"
+            }
+        }
+
+        // --- Buttons layout (tight spacing) ---
+        val buttonsLayout = HorizontalLayout(backButton, moveToDashboardButton, sortByNameButton).apply {
+            isSpacing = true
+            setAlignItems(FlexComponent.Alignment.CENTER)
+            style.set("gap", "10px") // smaller gap for tighter look
+        }
+
+        // --- Top row: buttons left, status right ---
+        val topRow = HorizontalLayout(buttonsLayout, statusLayout).apply {
+            setWidthFull()
+            justifyContentMode = FlexComponent.JustifyContentMode.BETWEEN
+            alignItems = FlexComponent.Alignment.CENTER
+            style.set("padding", "10px 20px")
+        }
+
+        add(topRow)
+
+        // --- Folder image + name below buttons ---
         val folderImage = Image(
             folder.imageUrl ?: "https://img.icons8.com/fluency/96/folder-invoices.png",
             folder.name
@@ -66,90 +157,13 @@ class FolderDetailView(
             style.set("color", "#fff")
         }
 
-        val headerLayout = HorizontalLayout(folderImage, folderName).apply {
-            setWidthFull()
-            isSpacing = true
+        val folderImageLayout = HorizontalLayout(folderImage, folderName).apply {
+            setSpacing(true)
             alignItems = FlexComponent.Alignment.CENTER
-            style.set("padding", "20px")
+            style.set("padding", "10px 20px 20px 20px")
         }
 
-        add(headerLayout)
-
-        // --- Toolbar with Back and Move buttons ---
-        val toolbar = HorizontalLayout().apply {
-            setWidthFull()
-            style.set("padding", "10px 20px")
-            isSpacing = true
-
-            // Back button
-            val backButton = Button("Back").apply {
-                style.set("background-color", "#757575")
-                style.set("color", "#fff")
-                style.set("border-radius", "5px")
-                style.set("padding", "5px 12px")
-                addClickListener { ui.ifPresent { it.navigate("") } }
-            }
-
-            // Move to Dashboard button
-            val moveToDashboardButton = Button("Move to Dashboard").apply {
-                style.set("background-color", "#2196f3")
-                style.set("color", "#fff")
-                style.set("border-radius", "5px")
-                style.set("padding", "5px 12px")
-                addClickListener {
-                    if (selectedProducts.isEmpty()) {
-                        Notification.show("No products selected")
-                        return@addClickListener
-                    }
-                    runBlocking {
-                        folderService.removeOwnedProductsFromFolder(selectedProducts.map { it.id })
-                    }
-                    selectedProducts.clear()
-                    refreshFolder(currentFolderId)
-                }
-            }
-
-            var sortAscending = true
-
-// Sort by Name button
-            val sortByNameButton = Button("Sort by Name ↑").apply {
-                style.set("background-color", "#4caf50")
-                style.set("color", "#fff")
-                style.set("border-radius", "5px")
-                style.set("padding", "5px 12px")
-
-                addClickListener {
-                    // Remove current cards
-                    folderProductsLayout.removeAll()
-
-                    // Sort products based on current flag
-                    val sortedProducts = if (sortAscending) {
-                        folder.ownedProducts.sortedBy { it.product.marketHashName.lowercase() }
-                    } else {
-                        folder.ownedProducts.sortedByDescending { it.product.marketHashName.lowercase() }
-                    }
-
-                    // Add sorted cards
-                    sortedProducts.forEach { owned ->
-                        folderProductsLayout.add(
-                            ProductCard(owned, productService, onDelete = { refreshFolder(currentFolderId) }) { product, selected ->
-                                if (selected) selectedProducts.add(product)
-                                else selectedProducts.remove(product)
-                            }
-                        )
-                    }
-
-                    // Toggle sort order and update button text
-                    sortAscending = !sortAscending
-                    text = if (sortAscending) "Sort by Name ↑" else "Sort by Name ↓"
-                }
-            }
-
-
-            add(backButton, moveToDashboardButton, sortByNameButton)
-        }
-
-        add(toolbar)
+        add(folderImageLayout)
 
         // --- Flex layout for product cards ---
         folderProductsLayout.removeAll()
@@ -171,4 +185,5 @@ class FolderDetailView(
 
         add(folderProductsLayout)
     }
+
 }

@@ -184,6 +184,15 @@ class ProductCard(
             productService.getPurchasesForOwnedProduct(ownedProduct.id).sumOf { it.quantity }
         }
 
+        val profit = runBlocking {
+            productService.getProfitForOwnedProduct(ownedProduct.id)
+        }
+
+        val profitSpan = Span("Profit: €${"%.2f".format(profit)}").apply {
+            style.set("font-size", "0.9em")
+            style.set("color", if (profit >= 0) "limegreen" else "red")
+        }
+
         val contentLayout = VerticalLayout().apply {
             isPadding = false
             isSpacing = true
@@ -197,6 +206,7 @@ class ProductCard(
                 Span("Updated: $updatedDate"),
                 Span("Market qty: ${product.quantity ?: "-"}"),
                 Span("Owned qty: $totalOwned"),
+                profitSpan,
                 Span("Current Price: €${product.minPrice ?: "-"}")
             )
         }

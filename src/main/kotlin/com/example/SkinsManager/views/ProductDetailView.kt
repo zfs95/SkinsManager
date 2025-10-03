@@ -18,11 +18,14 @@ import com.vaadin.flow.router.BeforeEnterObserver
 import com.vaadin.flow.router.Route
 import com.example.SkinsManager.components.DoubleToIntConverter
 import com.example.SkinsManager.components.navbar.DashboardNavbar
+import com.example.SkinsManager.model.UpdateHistory
 import com.vaadin.flow.component.grid.GridVariant
 import com.vaadin.flow.component.html.Image
+import com.vaadin.flow.component.html.Span
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Route("product/:ownedProductId")
 class ProductDetailView(
@@ -49,7 +52,7 @@ class ProductDetailView(
         style.set("background-color", "#121212")
 
         // --- Navbar ---
-        val navbar = DashboardNavbar(productService) { } // no refresh needed here
+        val navbar = DashboardNavbar(productService) { }
         add(navbar)
 
         // --- Content layout ---
@@ -57,9 +60,47 @@ class ProductDetailView(
             setWidthFull()
             style.set("padding", "20px")
             style.set("color", "white")
+            isSpacing = true
         }
 
-// Product image
+        // --- Status info labels ---
+        val latestUpdate: UpdateHistory? = productService.getLastestUpdate()
+        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy HH:mm")
+
+        val lastUpdateLabel = Span("Last Update: ${latestUpdate?.updatedAt?.format(formatter) ?: "-"}").apply {
+            style.set("color", "#ccc")
+        }
+        val productsUpdatedLabel = Span("Products Updated: ${latestUpdate?.updatedProducts ?: "-"}").apply {
+            style.set("color", "#ccc")
+        }
+        val productsAddedLabel = Span("Products Added: ${latestUpdate?.addedProducts ?: "-"}").apply {
+            style.set("color", "#ccc")
+        }
+
+        val statusLayout = HorizontalLayout(lastUpdateLabel, productsUpdatedLabel, productsAddedLabel).apply {
+            isSpacing = true
+            setAlignItems(FlexComponent.Alignment.CENTER)
+        }
+
+        // --- Back button ---
+        val backButton = Button("Back").apply {
+            style.set("background-color", "#757575")
+            style.set("color", "#fff")
+            style.set("border-radius", "5px")
+            style.set("padding", "5px 12px")
+            addClickListener {
+                ui.ifPresent { it.page.executeJs("history.back()") }
+            }
+        }
+
+        // --- Top row header: Back button left, status info right ---
+        val topHeader = HorizontalLayout(backButton, statusLayout).apply {
+            setWidthFull()
+            justifyContentMode = FlexComponent.JustifyContentMode.BETWEEN
+            alignItems = FlexComponent.Alignment.CENTER
+        }
+
+        // --- Product image + title below the top row ---
         val productImage = Image(
             ownedProduct.product.imageUrl ?: "https://img.icons8.com/liquid-glass/96/question-mark.png",
             ownedProduct.product.marketHashName
@@ -70,26 +111,22 @@ class ProductDetailView(
             style.set("object-fit", "cover")
         }
 
-// Product name
         val title = H2("${ownedProduct.product.marketHashName} Details").apply {
             style.set("color", "white")
         }
 
-// Horizontal layout with image + title
-        val headerLayout = HorizontalLayout(productImage, title).apply {
+        val imageTitleLayout = HorizontalLayout(productImage, title).apply {
             setAlignItems(FlexComponent.Alignment.CENTER)
             setSpacing(true)
-            style.set("margin-bottom", "20px")
         }
 
-// Add to content
-        content.add(headerLayout)
+        // --- Add header rows to content ---
+        content.add(topHeader, imageTitleLayout)
 
-        // Purchases grid
+        // --- Purchases grid ---
         purchasesGrid = Grid(PurchaseDto::class.java, false).apply {
             setWidthFull()
-            addColumn { purchase -> "€${"%.2f".format(purchase.unitPrice)}" }
-                .setHeader("Price")
+            addColumn { purchase -> "€${"%.2f".format(purchase.unitPrice)}" }.setHeader("Price")
             addColumn(PurchaseDto::amount).setHeader("Quantity")
             addColumn(PurchaseDto::date).setHeader("Date")
             addComponentColumn { purchase ->
@@ -103,7 +140,7 @@ class ProductDetailView(
         }
         content.add(purchasesGrid)
 
-        // Add purchase button
+        // --- Add purchase button ---
         val addButton = Button("Add Purchase") { openAddPurchaseDialog() }.apply {
             style.set("margin-top", "20px")
         }
@@ -149,19 +186,15 @@ class ProductDetailView(
         val saveButton = Button("Save") {
             if (binder.validate().isOk) {
                 val purchaseDto = binder.bean
-
                 if (isEdit) {
-                    // update existing
                     val updated = productService.updatePurchase(purchaseDto)
                     ownedProduct.purchases = ownedProduct.purchases.map {
                         if (it.id == updated.id) updated else it
                     }
                 } else {
-                    // add new
                     val saved = productService.addPurchase(ownedProduct.id, purchaseDto)
                     ownedProduct.purchases = ownedProduct.purchases + saved
                 }
-
                 purchasesGrid.setItems(ownedProduct.purchases)
                 dialog.close()
                 Notification.show(if (isEdit) "Purchase updated" else "Purchase added")
@@ -197,5 +230,4 @@ class ProductDetailView(
         dialog.footer.add(HorizontalLayout(confirm, cancel))
         dialog.open()
     }
-
 }

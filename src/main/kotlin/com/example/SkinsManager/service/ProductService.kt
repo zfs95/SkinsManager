@@ -12,12 +12,15 @@ import com.example.SkinsManager.model.OwnedProduct
 import com.example.SkinsManager.model.OwnedProductFolder
 import com.example.SkinsManager.model.Product
 import com.example.SkinsManager.model.Purchase
+import com.example.SkinsManager.model.UpdateHistory
 import com.example.SkinsManager.repository.OwnedProductRepository
 import com.example.SkinsManager.repository.ProductRepository
 import com.example.SkinsManager.repository.PurchaseRepository
+import com.example.SkinsManager.repository.UpdateHistoryRepository
 import kotlinx.coroutines.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Logger
 
@@ -28,7 +31,8 @@ class ProductService(
     private val ownedProductRepository: OwnedProductRepository,
     private val purchaseRepository: PurchaseRepository,
     private val assetClient: AssetClient,
-    private val searchEngine: ProductSearchService
+    private val searchEngine: ProductSearchService,
+    private val historyRepository: UpdateHistoryRepository
 ) {
 
     private val logger = Logger.getLogger(ProductService::class.java.name)
@@ -54,6 +58,15 @@ class ProductService(
 
         logger.info("Products added: ${addedCount.get()}")
         logger.info("Products updated: ${updatedCount.get()}")
+
+        // Save history entry
+        val history = UpdateHistory(
+            updatedAt = LocalDateTime.now(),
+            addedProducts = addedCount.get(),
+            updatedProducts = updatedCount.get(),
+            totalProducts = addedCount.get() + updatedCount.get()
+        )
+        historyRepository.save(history)
     }
 
     /**
@@ -153,6 +166,18 @@ class ProductService(
             ?: throw IllegalArgumentException("Owned product not found: $ownedProductId")
 
         return ownedProduct.purchases
+    }
+
+    fun getProfitForOwnedProduct(ownedProductId: Long): Double {
+        val ownedProduct = ownedProductRepository.findByIdWithProductAndPurchases(ownedProductId)
+            ?: throw IllegalArgumentException("Owned product not found: $ownedProductId")
+        val currentOwnedProductMarketValue = productRepository.findById(ownedProduct.product.id).get()
+        val totalPurchases = ownedProduct.purchases.sumOf { it.quantity * it.unitPrice }
+        val totalPurchasesQty = ownedProduct.purchases.sumOf { it.quantity }
+
+        val currentMarketValue = currentOwnedProductMarketValue.minPrice?.times(totalPurchasesQty) ?: 0.0
+
+        return currentMarketValue - totalPurchases
     }
 
     @Transactional
@@ -363,6 +388,10 @@ class ProductService(
 
     fun findByIdWithOwnedProducts(folderId: Long): OwnedProductFolder? {
         return ownedProductRepository.findByIdWithOwnedProducts(folderId)
+    }
+
+    fun getLastestUpdate(): UpdateHistory? {
+        return historyRepository.findLatestUpdate().firstOrNull()
     }
 
 }

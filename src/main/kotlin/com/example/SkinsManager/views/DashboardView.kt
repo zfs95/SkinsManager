@@ -4,16 +4,19 @@ import com.example.SkinsManager.components.FolderCard
 import com.example.SkinsManager.components.ProductCard
 import com.example.SkinsManager.components.navbar.DashboardNavbar
 import com.example.SkinsManager.model.OwnedProduct
+import com.example.SkinsManager.model.UpdateHistory
 import com.example.SkinsManager.service.OwnedProductFolderService
 import com.example.SkinsManager.service.ProductService
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.dialog.Dialog
 import com.vaadin.flow.component.html.Span
 import com.vaadin.flow.component.notification.Notification
+import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.FlexLayout
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import com.vaadin.flow.router.Route
+import java.time.format.DateTimeFormatter
 
 @Route("")
 class DashboardView(
@@ -25,6 +28,11 @@ class DashboardView(
     private val foldersLayout = FlexLayout()
     private val selectedProducts = mutableSetOf<OwnedProduct>()
 
+    // --- Status labels ---
+    private val lastUpdateLabel = Span("Last Update: -").apply { style.set("color", "#ccc") }
+    private val productsUpdatedLabel = Span("Products Updated: -").apply { style.set("color", "#ccc") }
+    private val productsAddedLabel = Span("Products Added: -").apply { style.set("color", "#ccc") }
+
     init {
         setSizeFull()
         isPadding = false
@@ -35,7 +43,7 @@ class DashboardView(
         val navbar = DashboardNavbar(productService) { refreshDashboard() }
         add(navbar)
 
-// --- Toolbar ---
+        // --- Toolbar ---
         val toolbar = HorizontalLayout().apply {
             setWidthFull()
             style.set("padding", "10px 20px")
@@ -43,7 +51,7 @@ class DashboardView(
 
             // Move to Folder button
             val moveButton = Button("Move to Folder").apply {
-                style.set("background-color", "#2196f3") // blue
+                style.set("background-color", "#2196f3")
                 style.set("color", "#fff")
                 style.set("border-radius", "5px")
                 style.set("padding", "5px 12px")
@@ -52,7 +60,7 @@ class DashboardView(
 
             // Create Folder button
             val createFolderButton = Button("Create Folder").apply {
-                style.set("background-color", "#4caf50") // green
+                style.set("background-color", "#4caf50")
                 style.set("color", "#fff")
                 style.set("border-radius", "5px")
                 style.set("padding", "5px 12px")
@@ -62,7 +70,16 @@ class DashboardView(
                 }
             }
 
-            add(moveButton, createFolderButton)
+            val buttonsLayout = HorizontalLayout(moveButton, createFolderButton).apply { isSpacing = true }
+
+            // Status layout
+            val statusLayout = HorizontalLayout(lastUpdateLabel, productsUpdatedLabel, productsAddedLabel).apply {
+                isSpacing = true
+                setAlignItems(FlexComponent.Alignment.CENTER)
+            }
+
+            expand(buttonsLayout)
+            add(buttonsLayout, statusLayout)
         }
         add(toolbar)
 
@@ -85,6 +102,7 @@ class DashboardView(
         add(ownedProductsLayout)
 
         refreshDashboard()
+        refreshUpdateStatus()
     }
 
     private fun refreshDashboard() {
@@ -99,8 +117,7 @@ class DashboardView(
                 onDelete = {
                     folderService.deleteFolder(it.id)
                     refreshDashboard()
-                },
-                // onUpdate = { refreshDashboard() } // refresh when folder edited
+                }
             )
             foldersLayout.add(card)
         }
@@ -109,7 +126,6 @@ class DashboardView(
         ownedProductsLayout.removeAll()
         selectedProducts.clear()
         val ownedProducts = productService.getOwnedProductsOnDashboard()
-
         ownedProducts.forEach { ownedProduct ->
             val card = ProductCard(
                 ownedProduct,
@@ -120,6 +136,24 @@ class DashboardView(
                 else selectedProducts.remove(product)
             }
             ownedProductsLayout.add(card)
+        }
+
+        // Refresh status after dashboard refresh
+        refreshUpdateStatus()
+    }
+
+    private fun refreshUpdateStatus() {
+        val latestUpdate: UpdateHistory? = productService.getLastestUpdate()
+        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy HH:mm")
+
+        if (latestUpdate != null) {
+            lastUpdateLabel.text = "Last Update: ${latestUpdate.updatedAt.format(formatter)}"
+            productsUpdatedLabel.text = "Products Updated: ${latestUpdate.updatedProducts}"
+            productsAddedLabel.text = "Products Added: ${latestUpdate.addedProducts}"
+        } else {
+            lastUpdateLabel.text = "Last Update: -"
+            productsUpdatedLabel.text = "Products Updated: -"
+            productsAddedLabel.text = "Products Added: -"
         }
     }
 

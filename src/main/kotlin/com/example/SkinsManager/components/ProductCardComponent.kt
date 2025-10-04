@@ -53,19 +53,18 @@ class ProductCard(
             }
         }
 
-// Wrap checkbox in a bigger container
         val checkboxContainer = HorizontalLayout(selectBox).apply {
             setWidthFull()
-            setHeight("50px")                     // increase clickable height
+            setHeight("50px")
             alignItems = FlexComponent.Alignment.CENTER
             justifyContentMode = FlexComponent.JustifyContentMode.CENTER
-            style.set("padding", "8px")           // more padding around
+            style.set("padding", "8px")
             element.executeJs("""
-        this.addEventListener('click', function(e) {
-            e.stopPropagation();          // avoid card click
-            this.querySelector('vaadin-checkbox').click(); // toggle checkbox when container clicked
-        });
-    """.trimIndent())
+                this.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    this.querySelector('vaadin-checkbox').click();
+                });
+            """.trimIndent())
         }
 
         if (onSelect != null) add(checkboxContainer)
@@ -177,7 +176,7 @@ class ProductCard(
         // --- Content layout ---
         val updatedDate = product.updatedAt?.let {
             val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            sdf.format(Date(it*1000))
+            sdf.format(Date(it * 1000))
         } ?: "-"
 
         val totalOwned = runBlocking {
@@ -191,7 +190,24 @@ class ProductCard(
         val profitSpan = Span("Profit: €${"%.2f".format(profit)}").apply {
             style.set("font-size", "0.9em")
             style.set("color", if (profit >= 0) "limegreen" else "red")
+            style.set("min-height", "18px")
         }
+
+        // --- Product name: full visible, wrapped if needed ---
+        val nameSpan = Span("Product: ${product.marketHashName}").apply {
+            style.set("font-weight", "bold")
+            style.set("max-width", "180px")
+            style.set("text-align", "center")
+            style.set("word-wrap", "break-word")
+            style.set("white-space", "normal")
+            style.set("min-height", "36px") // allow two lines for longer names
+        }
+
+        val updatedSpan = Span("Updated: $updatedDate").apply { style.set("min-height", "18px") }
+        val marketQtySpan = Span("Market qty: ${product.quantity ?: "-"}").apply { style.set("min-height", "18px") }
+        val ownedQtySpan = Span("Owned qty: $totalOwned").apply { style.set("min-height", "18px") }
+        val minPriceSpan = Span("Min Price: €${product.minPrice ?: "-"}").apply { style.set("min-height", "18px") }
+        val suggestedPriceSpan = Span("Suggested price: €${product.suggestedPrice ?: "-"}").apply { style.set("min-height", "18px") }
 
         val contentLayout = VerticalLayout().apply {
             isPadding = false
@@ -202,12 +218,13 @@ class ProductCard(
 
             add(
                 image,
-                Span("Product: ${product.marketHashName}"),
-                Span("Updated: $updatedDate"),
-                Span("Market qty: ${product.quantity ?: "-"}"),
-                Span("Owned qty: $totalOwned"),
+                nameSpan,
+                updatedSpan,
+                marketQtySpan,
+                ownedQtySpan,
                 profitSpan,
-                Span("Current Price: €${product.minPrice ?: "-"}")
+                minPriceSpan,
+                suggestedPriceSpan
             )
         }
 
@@ -225,4 +242,3 @@ class ProductCard(
         element.setProperty("onmouseleave", "this.style.backgroundColor='$normalColor'")
     }
 }
-

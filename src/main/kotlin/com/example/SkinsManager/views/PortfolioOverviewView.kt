@@ -90,8 +90,8 @@ class PortfolioOverviewView(
                 .setHeader("Paid (€)")
                 .setFooter("Total Paid: €${"%.2f".format(summary.totalCost)}")
             addColumn(PortfolioProduct::currentValue)
-                .setHeader("Current (€)")
-                .setFooter("Total Current: €${"%.2f".format(summary.currentValue)}")
+                .setHeader("Current Suggested Price(€)")
+                .setFooter("Total Current Suggested Price: €${"%.2f".format(summary.currentValue)}")
             addComponentColumn { product: PortfolioProduct ->
                 Span("€${"%.2f".format(product.profit)}").apply {
                     style.set("color", if (product.profit >= 0) "limegreen" else "red")

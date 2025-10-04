@@ -175,7 +175,7 @@ class ProductService(
         val totalPurchases = ownedProduct.purchases.sumOf { it.quantity * it.unitPrice }
         val totalPurchasesQty = ownedProduct.purchases.sumOf { it.quantity }
 
-        val currentMarketValue = currentOwnedProductMarketValue.minPrice?.times(totalPurchasesQty) ?: 0.0
+        val currentMarketValue = currentOwnedProductMarketValue.suggestedPrice?.times(totalPurchasesQty) ?: 0.0
 
         return currentMarketValue - totalPurchases
     }
@@ -323,7 +323,7 @@ class ProductService(
 
             // Current price from the related Product entity
             // Using minPrice as "current market price"
-            val currentUnitPrice = owned.product.minPrice ?: 0.0
+            val currentUnitPrice = owned.product.suggestedPrice ?: 0.0
             val currentValue = currentUnitPrice * totalQuantity
 
             PortfolioProduct(

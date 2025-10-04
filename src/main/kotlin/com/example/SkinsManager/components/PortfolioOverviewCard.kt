@@ -22,7 +22,7 @@ class PortfolioOverviewCard(
         add(title)
 
         val totalCost = Span("Total Paid: €${"%.2f".format(portfolioSummary.totalCost)}")
-        val currentValue = Span("Current Value: €${"%.2f".format(portfolioSummary.currentValue)}")
+        val currentValue = Span("Current Suggested Price Value: €${"%.2f".format(portfolioSummary.currentValue)}")
 
         val profit = Span("Profit: €${"%.2f".format(portfolioSummary.profit)}").apply {
             if (portfolioSummary.profit >= 0) {

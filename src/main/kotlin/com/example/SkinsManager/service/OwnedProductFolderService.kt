@@ -90,7 +90,7 @@ class OwnedProductFolderService (
         }
 
         val currentValue = ownedProducts.sumOf { owned ->
-            val minPrice = owned.product.minPrice ?: 0.0
+            val minPrice = owned.product.suggestedPrice ?: 0.0
             val totalQty = productService.getPurchasesForOwnedProduct(owned.id).sumOf { it.quantity }
             minPrice * totalQty
         }

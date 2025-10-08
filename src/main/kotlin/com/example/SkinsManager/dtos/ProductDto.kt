@@ -1,7 +1,9 @@
 package com.example.SkinsManager.dtos
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class ProductDto(
     @JsonProperty("market_hash_name")
     val marketHashName: String,
